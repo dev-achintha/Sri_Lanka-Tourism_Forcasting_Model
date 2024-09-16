@@ -86,4 +86,4 @@ print(f"Mean Absolute Error: {mae}")
 
 We calculate Mean Absolute Error (MAE) to evaluate the model's performance. The high MAE and observed forecast issues suggest potential overfitting and missed external factors affecting tourism.
 
-Further improvements include external regressors and tuning changepoint parameters.
+Future improvements include tuning changepoint parameters.
