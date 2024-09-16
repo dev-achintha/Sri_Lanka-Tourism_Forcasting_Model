@@ -1,10 +1,6 @@
 pandas
+streamlit
 matplotlib
-statsmodels
-scikit-learn
-fastapi
-uvicorn
-scikit-learn
-numpy
+prophet
 joblib
-python-multipart
+numpy==1.24.3

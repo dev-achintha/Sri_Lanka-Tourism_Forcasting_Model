@@ -1,104 +1,67 @@
-from fastapi import FastAPI, HTTPException, Form, File, UploadFile
-from pydantic import BaseModel, Field
-from typing import List, Optional
+import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
 from tourism_forecast_model import TourismForecastModel
 import os
-import joblib
-from datetime import datetime
-
-app = FastAPI()
 
 model = TourismForecastModel()
 
-# Path to the dataset and model file
-model_file_path = 'model/tourism_forecast_model.joblib'
+model_file_path = 'model/model.joblib'
 dataset_path = 'dataset/2015-2024-monthly-tourist-arrivals-sl-csv.csv'
 
-# Ensure the model is trained or loaded when the app starts
-def train_model_on_startup():
-    try:
-        if os.path.exists(model_file_path):
-            # Load the previously trained model
-            model.load_model(model_file_path)
-            print(f"Model loaded from {model_file_path}")
+df = pd.read_csv(dataset_path)
+
+def load_or_train_model():
+    if os.path.exists(model_file_path):
+        model.load_model(model_file_path)
+        st.write(f"Model loaded from {model_file_path}")
+    else:
+        model.train(df)
+        model.save_model(model_file_path)
+        st.write("Prophet model trained and saved successfully.")
+
+st.title("Sri Lanka Tourism Forecasting with Prophet")
+
+load_or_train_model()
+
+st.header("Long-term Forecast with Prophet")
+future_months = st.number_input("Enter the number of months to forecast into the future:", min_value=1, value=12)
+
+if st.button("Forecast"):
+    forecast = model.predict(future_months)
+    st.write(forecast.tail())
+
+    # Plot forecast
+    fig, ax = plt.subplots()
+    ax.plot(forecast['ds'], forecast['yhat'], label='Forecast')
+    ax.fill_between(forecast['ds'], forecast['yhat_lower'], forecast['yhat_upper'], color='gray', alpha=0.2)
+    ax.set_title(f"Prophet Forecast for {future_months} months")
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Tourist Arrivals")
+    ax.legend()
+    st.pyplot(fig)
+
+st.header("Retrain the Model")
+uploaded_file = st.file_uploader("Upload a CSV file with 'Year', 'Month', and 'Arrivals' columns", type=["csv"])
+combine_with_existing = st.checkbox("Combine with existing dataset?", value=True)
+
+if st.button("Retrain"):
+    if uploaded_file is not None:
+        new_data = pd.read_csv(uploaded_file)
+
+        if not all(col in new_data.columns for col in ['Year', 'Month', 'Arrivals']):
+            st.error("Uploaded CSV must contain 'Year', 'Month', and 'Arrivals' columns.")
         else:
-            # If no model exists, train the model and save it
-            df = pd.read_csv(dataset_path)
-            model.train(df)
+            if combine_with_existing:
+                combined_data = pd.concat([df, new_data], ignore_index=True)
+            else:
+                combined_data = new_data
+
+            model.train(combined_data)
             model.save_model(model_file_path)
-            print("Model trained and saved successfully on startup.")
-    except Exception as e:
-        print(f"Error during model loading or training on startup: {str(e)}")
+            st.success("Model retrained successfully.")
+    else:
+        st.error("Please upload a file to retrain the model.")
 
-# Call the train function when the app starts
-train_model_on_startup()
-
-class PredictionInput(BaseModel):
-    year: int = Field(..., example=2024, description="Year for the prediction")
-    month: Optional[str] = Field(None, example="August", description="Month for the prediction (optional)")
-    event_impact: Optional[str] = Field(None, example="medium", description="Event impact severity (optional: low, medium, high, severe)")
-
-@app.post("/predict", summary="Predict Tourist Arrivals", description="Predict the number of tourist arrivals for a specific month and year.")
-async def predict(
-    year: int = Form(..., description="Year for the prediction"),
-    month: Optional[str] = Form(None, description="Month for the prediction (optional)"),
-    event_impact: Optional[str] = Form(None, description="Event impact severity (optional: low, medium, high, severe)")
-):
-    try:
-        # Load the existing dataset
-        df = pd.read_csv(dataset_path)
-
-        # Prepare input for prediction
-        df_input = pd.DataFrame([{
-            'Year': year,
-            'Month': month if month else "January",  # Default to January if no month is provided
-            'Arrivals': None  # Placeholder for prediction
-        }])
-
-        # Add the last 12 months of data for the model to predict based on it
-        last_12_months = df.tail(12)
-        df_input = pd.concat([last_12_months, df_input], ignore_index=True)
-
-        # Make the prediction
-        prediction = model.predict(df_input, event_impact)
-        return {"prediction": prediction}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Prediction failed: {str(e)}")
-
-@app.post("/retrain", summary="Retrain the model with new data")
-async def retrain(
-    file: UploadFile = File(..., description="Upload a CSV file with 'year', 'month', and 'arrivals' columns"),
-    combine_with_existing: bool = Form(True, description="Whether to combine with the existing dataset")
-):
-    try:
-        # Load the new data from the uploaded file
-        new_data = pd.read_csv(file.file)
-
-        # Ensure the required columns are present
-        required_columns = ['year', 'month', 'arrivals']
-        if not all(col in new_data.columns for col in required_columns):
-            raise HTTPException(status_code=400, detail="CSV file must include 'year', 'month', and 'arrivals' columns.")
-
-        # Save the new dataset with a timestamp
-        timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-        new_dataset_path = f"dataset/new_dataset_{timestamp}.csv"
-        new_data.to_csv(new_dataset_path, index=False)
-
-        # Combine with the existing dataset if requested
-        if combine_with_existing:
-            existing_data = pd.read_csv(dataset_path)
-            combined_data = pd.concat([existing_data, new_data], ignore_index=True)
-        else:
-            combined_data = new_data
-
-        # Retrain the model with the combined data
-        model.train(combined_data)
-        model.save_model(model_file_path)  # Save the updated model
-        return {"message": "Model retrained and saved successfully", "new_dataset": new_dataset_path}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Retraining failed: {str(e)}")
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+model.train(df)
+model.save_model(model_file_path)
