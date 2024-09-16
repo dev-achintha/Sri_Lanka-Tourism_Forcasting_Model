@@ -1,6 +1,0 @@
-pandas
-streamlit
-matplotlib
-prophet
-joblib
-numpy==1.24.3
