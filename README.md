@@ -124,8 +124,9 @@ Prophet is a decomposable time-series model developed by Facebook, known for han
   - Number of changepoints set to 30.
 
 - **Forecasting**: Generates future data points with a monthly frequency.
-
+---
 #### SARIMA
+
 
 Seasonal ARIMA models cater to both non-seasonal and seasonal data patterns.
 
@@ -134,7 +135,7 @@ Seasonal ARIMA models cater to both non-seasonal and seasonal data patterns.
   - Seasonal order set to (1, 1, 1, 12) to account for yearly seasonality.
 
 - **Forecasting**: Produces future values based on the fitted SARIMA model.
-
+---
 #### Exponential Smoothing
 
 This technique models data with trend and seasonality components.
@@ -144,7 +145,7 @@ This technique models data with trend and seasonality components.
   - Seasonal periods set to 12 to capture annual seasonality.
 
 - **Forecasting**: Generates future points using the fitted model.
-
+---
 #### LSTM
 
 Long Short-Term Memory networks are a type of recurrent neural network capable of learning long-term dependencies.
@@ -158,7 +159,7 @@ Long Short-Term Memory networks are a type of recurrent neural network capable o
   - Trained for 50 epochs with a batch size of 32.
 
 - **Forecasting**: Iteratively predicts future values by feeding previous predictions back into the model.
-
+---
 ### Cross-Validation
 
 Time-series cross-validation is employed to evaluate model performance.
