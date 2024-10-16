@@ -297,8 +297,7 @@ plt.show()
 
 **Sample Plot:**
 
-![Actual vs Predicted Tourist Arrivals](https://i.imgur.com/your_image_link.png)  
-*Note: Replace with actual plot image.*
+![Actual vs Predicted Tourist Arrivals](https://imgur.com/a/V2NBGPy)
 
 ### 6. Model Evaluation
 
