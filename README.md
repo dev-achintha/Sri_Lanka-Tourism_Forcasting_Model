@@ -1,6 +1,6 @@
 # Sri Lankan Tourism Forecasting Model
 
-# [Click here to go to the Application ◳](https://symmetrical-orbit-p949rrwxgw427wxg-8501.app.github.dev/)
+# [Click here to go to the Application ◳](https://srilanka-tourismforcastingmodel-gapeedxsjffsehfyujfpfd.streamlit.app/)
 
 **October 16, 2024**
 
