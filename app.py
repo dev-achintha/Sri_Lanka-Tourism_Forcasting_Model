@@ -8,7 +8,6 @@ from keras.models import Sequential
 from keras.layers import LSTM, Dense
 import plotly.graph_objects as go
 
-# Sidebar Inputs
 st.sidebar.title("Tourism Forecasting with Custom Models")
 model_choice = st.sidebar.selectbox(
     "Select Forecasting Model", 
@@ -29,7 +28,6 @@ else:
 df['ds'] = pd.to_datetime(df['Year'].astype(str) + '-' + df['Month'], format='%Y-%B')
 df = df[['ds', 'Arrivals']].rename(columns={'Arrivals': 'y'}).sort_values('ds')
 
-# Sidebar: Manage Changepoints
 st.sidebar.subheader("Changepoint Management")
 if 'changepoints' not in st.session_state:
     st.session_state['changepoints'] = []
@@ -37,14 +35,14 @@ if 'changepoints' not in st.session_state:
 changepoints_df = pd.DataFrame(st.session_state['changepoints'], columns=['Date', 'Impact Level'])
 st.sidebar.table(changepoints_df)
 
-# Add New Changepoint
+# Add Changepoint
 new_date = st.sidebar.date_input("Select Changepoint Date")
 impact_level = st.sidebar.slider("Impact Level", -100, 100, 0)
 if st.sidebar.button("Add Changepoint"):
     st.session_state['changepoints'].append({'Date': new_date, 'Impact Level': impact_level})
     st.session_state['trigger_rerun'] = not st.session_state.get('trigger_rerun', False)  # Trigger refresh
 
-# Custom Models
+# Models
 
 def custom_prophet(data, periods=12):
     """Custom Prophet Model for Forecasting."""
@@ -62,8 +60,8 @@ def custom_sarima(data, periods=12):
     
     # Extract predicted values
     forecast_df = forecast.predicted_mean.reset_index()  
-    forecast_df.columns = ['ds', 'yhat']  # Rename for consistency
-    forecast_df['ds'] = pd.to_datetime(forecast_df['ds'])  # Ensure datetime format
+    forecast_df.columns = ['ds', 'yhat']
+    forecast_df['ds'] = pd.to_datetime(forecast_df['ds'])
     
     return forecast_df
 
@@ -81,7 +79,7 @@ def custom_lstm(data, periods=12):
 
     X_train, y_train = np.array(X_train), np.array(y_train)
 
-    # Build LSTM Model
+    # LSTM Model
     model = Sequential([
         LSTM(50, activation='relu', input_shape=(seq_length, 1)),
         Dense(1)
@@ -102,7 +100,7 @@ def custom_lstm(data, periods=12):
     forecast_df = pd.DataFrame({'ds': pd.date_range(data['ds'].max(), periods=periods, freq='M'), 'yhat': forecast})
     return forecast_df
 
-# Forecast with Selected Model
+# Select Model
 if model_choice == "Custom Prophet":
     forecast = custom_prophet(df)
 elif model_choice == "Custom SARIMA":
@@ -110,28 +108,25 @@ elif model_choice == "Custom SARIMA":
 else:
     forecast = custom_lstm(df)
 
-# Plot Forecast with Yellow Prediction Line
+# Plot Forecast
 st.subheader(f"{model_choice} Forecast")
 fig = go.Figure()
 
-# Add prediction line (yellow)
 fig.add_trace(go.Scatter(
     x=forecast['ds'], y=forecast['yhat'], 
     mode='lines', name='Forecast', line=dict(color='yellow')
 ))
 
-# Add actual data points
 fig.add_trace(go.Scatter(
     x=df['ds'], y=df['y'], 
     mode='markers', name='Actual Data', marker=dict(color='blue')
 ))
 
-# Configure x-axis to display years properly
 fig.update_layout(
     title=f"{model_choice} Forecast", 
     xaxis_title='Date', 
     yaxis_title='Arrivals',
-    xaxis=dict(tickformat='%Y')  # Ensure years are displayed on the x-axis
+    xaxis=dict(tickformat='%Y')
 )
 
 st.plotly_chart(fig)
